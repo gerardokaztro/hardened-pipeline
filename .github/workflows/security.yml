@@ -48,7 +48,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.23"
+          # Betterleaks v1.8.1 requires go >= 1.25.0 (its go.mod); 1.23
+          # failed with GOTOOLCHAIN=local set by setup-go, which disables
+          # Go's own auto-toolchain-fetch. 1.26 covers both this and
+          # osv-scanner's higher requirement below (kept in sync).
+          go-version: "1.26"
 
       - name: Install betterleaks
         # No official GitHub Action exists for Betterleaks (only an
@@ -152,7 +156,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.23"
+          # osv-scanner v2.5.1 requires go >= 1.26.5 (its go.mod).
+          go-version: "1.26"
 
       - name: Install osv-scanner
         # osv-scanner-action only ships reusable workflows (jobs.<job>.uses
