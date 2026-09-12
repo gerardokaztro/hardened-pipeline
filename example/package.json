@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "description": "Manifest-only package, used to exercise OSV-Scanner against the npm ecosystem. No Node code runs here.",
+  "_attackDemo": "Pins @tanstack/react-router to a version named in CVE-2026-45321 / GHSA-g7cv-rxg3-hmpx (TanStack npm worm, 11 may 2026) — sca (OSV-Scanner) should flag this. npm has since unpublished this version, so `npm install` will not actually resolve it; the pinned lockfile entry is enough for OSV-Scanner's static check.",
   "dependencies": {
-    "@tanstack/react-router": "1.170.35"
+    "@tanstack/react-router": "1.169.5"
   }
 }
