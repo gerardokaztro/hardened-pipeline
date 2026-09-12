@@ -1,2 +1,8 @@
 fastapi==0.141.1
 uvicorn[standard]==0.52.4
+# Transitive deps pinned explicitly: pip's resolver picked vulnerable
+# versions of these on a real CI run (h11 0.9.0, idna 3.9.0) despite
+# resolving safe ones locally — non-deterministic across pip/Python
+# versions without a lockfile. Confirmed fixed versions via OSV.dev.
+h11==0.16.0
+idna==3.19

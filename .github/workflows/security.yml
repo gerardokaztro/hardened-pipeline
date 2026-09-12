@@ -62,7 +62,14 @@ jobs:
         run: go install github.com/betterleaks/betterleaks@v1.8.1
 
       - name: Run betterleaks
-        run: betterleaks git . --config .betterleaks.toml --report-format sarif --report-path betterleaks.sarif
+        # --log-opts="HEAD" limits the scan to commits reachable from this
+        # checkout's HEAD. Without it, betterleaks scans every ref in the
+        # local object store — and fetch-depth: 0 above pulls in ALL
+        # branches' history, not just this one. Reproduced for real: on a
+        # clean main, betterleaks reported a leak whose git.sha belonged
+        # to demo/attack-hardcoded-secret, fetched alongside main by the
+        # same checkout step.
+        run: betterleaks git . --config .betterleaks.toml --log-opts="HEAD" --report-format sarif --report-path betterleaks.sarif
 
       - name: Upload SARIF
         if: always()
