@@ -1,0 +1,22 @@
+name: deploy
+
+on:
+  push:
+    branches: [main]
+
+# ATTACK DEMO — recreates IronWorm (jun 2026): after harvesting
+# credentials from compromised npm packages, the worm used them to push
+# backdated malicious commits back into victim repos and relayed stolen
+# secrets through GitHub Actions, self-replicating across the packages
+# it touched. That kind of write-back only works if the token it's
+# riding on can write to the repo. `write-all` with no stated reason is
+# exactly the over-broad grant that makes this possible — workflow-lint
+# (zizmor) should flag it.
+permissions: write-all
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Placeholder
+        run: echo "deploy step"
