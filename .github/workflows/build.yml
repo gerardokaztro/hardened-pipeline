@@ -1,0 +1,26 @@
+name: build
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # ATTACK DEMO — recreates CVE-2026-33634 (Trivy ecosystem supply
+      # chain compromise, 19 mar 2026): a threat actor with compromised
+      # release credentials force-pushed 76 of 77 version tags in
+      # aquasecurity/trivy-action to credential-stealing commits, and
+      # all 7 tags in aquasecurity/setup-trivy. A tag like `v4` is
+      # mutable — anyone who controls (or compromises) the upstream repo
+      # can repoint it to different code at any time. `workflow-lint`
+      # (zizmor's unpinned-uses rule) should catch this before merge.
+      - name: Checkout (mutable tag, not pinned by SHA)
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: echo "build step"
