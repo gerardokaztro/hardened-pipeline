@@ -1,0 +1,9 @@
+{
+  "name": "hardened-pipeline-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Manifest-only package, used to exercise OSV-Scanner against the npm ecosystem. No Node code runs here.",
+  "dependencies": {
+    "@tanstack/react-router": "1.170.35"
+  }
+}

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>hardened-pipeline — demos de ataque</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0d1117;
+    --bg-alt: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --ok: #3fb950;
+    --pending: #d29922;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  main {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+  h1 {
+    font-size: 1.6rem;
+    margin-bottom: 4px;
+  }
+  p.lead {
+    color: var(--text-dim);
+    max-width: 640px;
+    margin-top: 0;
+  }
+  a { color: var(--accent); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 32px;
+    font-size: 0.92rem;
+  }
+  caption {
+    text-align: left;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    color: var(--text-dim);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  tr:hover td { background: var(--bg-alt); }
+  .status {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .status.pending { background: rgba(210, 153, 34, 0.15); color: var(--pending); }
+  .status.blocked { background: rgba(63, 185, 80, 0.15); color: var(--ok); }
+  .control { color: var(--text-dim); font-size: 0.88rem; }
+  footer {
+    margin-top: 48px;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>hardened-pipeline</h1>
+  <p class="lead">
+    Siete incidentes reales de supply chain de 2026, reproducidos como PRs
+    de ataque contra este repo. Cada uno recrea el patrón exacto del
+    incidente en miniatura y muestra al control correspondiente
+    deteniéndolo antes del merge.
+  </p>
+
+  <table>
+    <caption>Actualizado manualmente a medida que se abren los PRs de ataque.</caption>
+    <thead>
+      <tr>
+        <th>Incidente</th>
+        <th>Fecha</th>
+        <th>Control</th>
+        <th>PR de ataque</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Trivy — CVE-2026-33634<br><span class="control">force-push de 76/77 tags mutables</span></td>
+        <td>2026-03-19</td>
+        <td class="control">zizmor (unpinned-uses)</td>
+        <td><a href="https://github.com/gerardokaztro/hardened-pipeline/pulls">demo/attack-unpinned-tag</a></td>
+        <td><span class="status pending">Pendiente</span></td>
+      </tr>
+      <tr>
+        <td>axios — RAT vía dependencia maliciosa<br><span class="control">plain-crypto-js, postinstall</span></td>
+        <td>2026-03-30</td>
+        <td class="control">Harden-Runner (egress-policy: block)</td>
+        <td><a href="https://github.com/gerardokaztro/hardened-pipeline/pulls">demo/attack-egress-secret</a></td>
+        <td><span class="status pending">Pendiente</span></td>
+      </tr>
+      <tr>
+        <td>Campañas npm / PyPI / Docker Hub<br><span class="control">robo de credenciales inyectadas en CI</span></td>
+        <td>2026-04-21 / 23</td>
+        <td class="control">Betterleaks (secrets scanning)</td>
+        <td><a href="https://github.com/gerardokaztro/hardened-pipeline/pulls">demo/attack-hardcoded-secret</a></td>
+        <td><span class="status pending">Pendiente</span></td>
+      </tr>
+      <tr>
+        <td>TanStack — CVE-2026-45321<br><span class="control">84 versiones maliciosas en 42 paquetes</span></td>
+        <td>2026-05-11</td>
+        <td class="control">OSV-Scanner (SCA)</td>
+        <td><a href="https://github.com/gerardokaztro/hardened-pipeline/pulls">demo/attack-vulnerable-dep</a></td>
+        <td><span class="status pending">Pendiente</span></td>
+      </tr>
+      <tr>
+        <td>binding.gyp — worm Miasma<br><span class="control">"Phantom Gyp", robo de secrets de CI/CD</span></td>
+        <td>2026-06-03</td>
+        <td class="control">Harden-Runner (egress-policy: block)</td>
+        <td><a href="https://github.com/gerardokaztro/hardened-pipeline/pulls">demo/attack-runner-exfil</a></td>
+        <td><span class="status pending">Pendiente</span></td>
+      </tr>
+      <tr>
+        <td>IronWorm<br><span class="control">auto-propagación vía commits y permisos de escritura</span></td>
+        <td>2026-06-04</td>
+        <td class="control">Permisos mínimos (sin write-all)</td>
+        <td><a href="https://github.com/gerardokaztro/hardened-pipeline/pulls">demo/attack-excess-permissions</a></td>
+        <td><span class="status pending">Pendiente</span></td>
+      </tr>
+      <tr>
+        <td>AsyncAPI — "pwn request"<br><span class="control">pull_request_target sobre código no confiable</span></td>
+        <td>2026-07-14</td>
+        <td class="control">zizmor (dangerous-triggers)</td>
+        <td><a href="https://github.com/gerardokaztro/hardened-pipeline/pulls">demo/attack-pwn-request</a></td>
+        <td><span class="status pending">Pendiente</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <footer>
+    <a href="https://github.com/gerardokaztro/hardened-pipeline">gerardokaztro/hardened-pipeline</a> — pipeline de seguridad agnóstico al lenguaje, hardened desde el diseño.
+  </footer>
+</main>
+</body>
+</html>

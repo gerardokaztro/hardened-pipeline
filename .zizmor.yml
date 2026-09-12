@@ -1,0 +1,5 @@
+# zizmor config (docs.zizmor.sh/configuration). All default audits stay
+# enabled — this repo's whole point is to demonstrate unpinned-uses,
+# dangerous-triggers (pwn requests), and excessive-permissions actually
+# firing, so nothing is disabled or ignored here.
+rules: {}

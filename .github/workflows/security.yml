@@ -1,0 +1,328 @@
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  # ── 1. Secrets scanning ──────────────────────────────────────────────
+  secrets-scan:
+    name: Secrets scan (Betterleaks)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+            proxy.golang.org:443
+            sum.golang.org:443
+            storage.googleapis.com:443
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Betterleaks scans git history, needs full clone
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.23"
+
+      - name: Install betterleaks
+        # No official GitHub Action exists for Betterleaks (only an
+        # unaffiliated third-party fork). go install pulls straight from
+        # the pinned tag through the module proxy/checksum DB, same trust
+        # model as pip-installing Semgrep/Checkov below.
+        run: go install github.com/betterleaks/betterleaks@v1.8.1
+
+      - name: Run betterleaks
+        run: betterleaks git . --config .betterleaks.toml --report-format sarif --report-path betterleaks.sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+        with:
+          sarif_file: betterleaks.sarif
+          category: betterleaks
+
+  # ── 2. SAST ───────────────────────────────────────────────────────────
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+            pypi.org:443
+            files.pythonhosted.org:443
+            semgrep.dev:443
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install semgrep
+        # No maintained action.yml for Semgrep — pip install + run:, same
+        # pattern already validated in iam-audit.
+        run: pip install semgrep==1.177.0
+
+      - name: Run semgrep
+        run: |
+          semgrep scan \
+            --config p/python \
+            --config p/javascript \
+            --config .semgrep.yml \
+            --sarif --output semgrep.sarif \
+            .
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+  # ── 3. SCA ────────────────────────────────────────────────────────────
+  sca:
+    name: SCA (OSV-Scanner)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+            proxy.golang.org:443
+            sum.golang.org:443
+            storage.googleapis.com:443
+            api.osv.dev:443
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.23"
+
+      - name: Install osv-scanner
+        # osv-scanner-action only ships reusable workflows (jobs.<job>.uses
+        # level), which can't sit inside a job that also runs Harden-Runner
+        # and the rest of our steps — installed as a binary instead.
+        run: go install github.com/google/osv-scanner/v2/cmd/osv-scanner@v2.5.1
+
+      - name: Run osv-scanner
+        # Pre-build, lockfiles/manifests only — no image scanning here,
+        # that's image-scan's job.
+        run: osv-scanner scan source -r --format sarif --output osv.sarif .
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
+        with:
+          sarif_file: osv.sarif
+          category: osv-scanner
+
+  # ── 4. Image scanning (optional) ────────────────────────────────────
+  image-scan:
+    name: Image scan (Syft + Grype)
+    runs-on: ubuntu-latest
+    # NOT a job-level `if`: hashFiles() is evaluated before any step runs,
+    # while the workspace is still empty, so it would always resolve to ''
+    # and skip this job unconditionally. Gating each step after checkout
+    # instead — the job itself always runs (harmlessly, if there's no
+    # Dockerfile) and security-gate doesn't look at its result anyway.
+    permissions:
+      contents: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+            registry-1.docker.io:443
+            auth.docker.io:443
+            production.cloudflare.docker.com:443
+            grype.anchore.io:443
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build image
+        if: hashFiles('example/Dockerfile') != ''
+        run: docker build -t hardened-pipeline-example:ci example/
+
+      - name: Generate SBOM (Syft)
+        if: hashFiles('example/Dockerfile') != ''
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          image: hardened-pipeline-example:ci
+          format: syft-json
+          output-file: sbom.json
+          upload-release-assets: false
+
+      - name: Scan SBOM (Grype)
+        if: hashFiles('example/Dockerfile') != ''
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          sbom: sbom.json
+          fail-build: false # informational only, security-gate ignores this job
+          output-format: sarif
+          output-file: grype-results.sarif
+
+  # ── 5. IaC scanning ──────────────────────────────────────────────────
+  iac-scan:
+    name: IaC scan (Checkov)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+            pypi.org:443
+            files.pythonhosted.org:443
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install checkov
+        # bridgecrewio/checkov-action's output_file_path is unreliable —
+        # pip install + run:, same pattern as Semgrep above.
+        run: pip install checkov==3.3.17
+
+      - name: Run checkov
+        # soft-fail on purpose: informational only, security-gate ignores
+        # this job's result.
+        run: |
+          checkov -d example/infra --framework terraform \
+            --soft-fail --output github_failed_only \
+            >> "$GITHUB_STEP_SUMMARY"
+
+  # ── 6. Workflow linting ───────────────────────────────────────────────
+  workflow-lint:
+    name: Workflow lint (zizmor)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
+        with:
+          inputs: .github/workflows/
+          config: .zizmor.yml
+          advanced-security: true
+
+  # ── 7. Security gate ─────────────────────────────────────────────────
+  security-gate:
+    name: Security gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - secrets-scan
+      - sast
+      - sca
+      - image-scan
+      - iac-scan
+      - workflow-lint
+    permissions: {}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: block
+          allowed-endpoints: >
+            github.com:443
+            api.github.com:443
+            objects.githubusercontent.com:443
+
+      - name: Evaluate hard-fail jobs
+        # image-scan and iac-scan are soft-fail by design (fail-build:
+        # false / --soft-fail) and never block the merge on their own —
+        # this is the single required status check for branch protection.
+        run: |
+          declare -A results=(
+            [secrets-scan]="${{ needs.secrets-scan.result }}"
+            [sast]="${{ needs.sast.result }}"
+            [sca]="${{ needs.sca.result }}"
+            [workflow-lint]="${{ needs.workflow-lint.result }}"
+          )
+
+          failed=0
+          for job in "${!results[@]}"; do
+            echo "$job: ${results[$job]}"
+            if [ "${results[$job]}" = "failure" ]; then
+              failed=1
+            fi
+          done
+
+          if [ "$failed" = "1" ]; then
+            echo "One or more hard-fail security jobs failed." >&2
+            exit 1
+          fi

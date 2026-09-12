@@ -1,0 +1,7 @@
+# Syft generates the SBOM that Grype then scans. The image-scan job pins
+# the output format explicitly via anchore/sbom-action's `format` input,
+# so this file only holds shared defaults for local/manual runs.
+output:
+  - "syft-json"
+exclude:
+  - "./docs/**"

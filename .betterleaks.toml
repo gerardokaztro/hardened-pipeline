@@ -1,0 +1,10 @@
+# Betterleaks config (github.com/betterleaks/betterleaks).
+# `[extend]` inherits the built-in default ruleset (documented in
+# docs/config.md as "inherit rules/settings from another config or from
+# built-in defaults") instead of replacing it — we only add settings on
+# top, we never redefine [[rules]] ourselves. `useDefault` mirrors the
+# gitleaks convention Betterleaks is intentionally CLI/config-compatible
+# with; if a future Betterleaks release renames this key, `betterleaks
+# git .` will simply fall back to its embedded defaults with a warning.
+[extend]
+useDefault = true

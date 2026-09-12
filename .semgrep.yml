@@ -1,0 +1,7 @@
+# Custom Semgrep rules for this repo, loaded in addition to the registry
+# rulesets (p/python, p/javascript) via a third --config flag in the sast
+# job. Empty by default — add project-specific rules here as needed.
+# Path exclusions live in .semgrepignore, not here: a rules file's
+# top-level keys don't include `exclude` (that's Semgrep Cloud/paths:
+# per-rule syntax, not a global switch).
+rules: []

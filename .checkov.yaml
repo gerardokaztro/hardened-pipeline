@@ -1,0 +1,12 @@
+# Checkov is invoked directly via `run:` in the iac-scan job (the
+# bridgecrewio/checkov-action's output_file_path is unreliable), with
+# CI-specific flags passed on the CLI:
+#   checkov -d example/infra --soft-fail --output github_failed_only
+#
+# This file only holds defaults for running `checkov` locally/outside CI.
+framework:
+  - terraform
+directory:
+  - example/infra
+download-external-modules: false
+compact: true

@@ -1,0 +1,5 @@
+# Grype scans the SBOM that Syft generates. The image-scan job passes
+# fail-build: false explicitly (findings are informational, they do not
+# feed security-gate's pass/fail decision) and sets output-file itself,
+# so this file only holds shared defaults, not job-level CI switches.
+ignore: []

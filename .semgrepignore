@@ -1,0 +1,6 @@
+# Gitignore-style patterns, merged with .gitignore. Semgrep is a SAST tool
+# for source code — no reason to run p/python or p/javascript rules
+# against Terraform, lockfiles, or the static docs page.
+docs/
+**/*.tf
+**/package-lock.json

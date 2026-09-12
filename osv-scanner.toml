@@ -1,0 +1,3 @@
+# OSV-Scanner config. No ignored vulnerabilities or overrides — this repo
+# intentionally wants every real advisory (including the one introduced by
+# demo/attack-vulnerable-dep) to surface, so it stays empty by default.
