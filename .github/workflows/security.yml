@@ -17,23 +17,19 @@ jobs:
       contents: read
       security-events: write
     steps:
-      # actions/setup-go downloads the Go toolchain from an
-      # actions/go-versions GitHub Release. Traced the real redirect chain
-      # for that download: github.com (302) -> release-assets.
-      # githubusercontent.com (200, actual tarball). That's a different
-      # host from objects.githubusercontent.com — both are needed.
-      # TEMP: audit instead of block, one CI run only — to capture
-      # Harden-Runner's "All Outbound Destinations" table from a single
-      # real run instead of discovering domains one push at a time.
-      # Revert to block once allowed-endpoints is built from that data.
+      # Built from Harden-Runner's own "All Outbound Destinations" data
+      # (egress-policy: audit) on a real, clean, fully-passing run of this
+      # exact job — not guessed. release-assets.githubusercontent.com
+      # didn't fire this specific run (Go 1.26 toolchain was already
+      # tool-cached) but is kept: traced separately via a direct redirect
+      # test that actions/setup-go uses it on a cache miss.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
-          egress-policy: audit
+          egress-policy: block
           allowed-endpoints: >
             github.com:443
             api.github.com:443
-            objects.githubusercontent.com:443
             release-assets.githubusercontent.com:443
             proxy.golang.org:443
             sum.golang.org:443
@@ -137,23 +133,22 @@ jobs:
       contents: read
       security-events: write
     steps:
-      # Same actions/setup-go gap as secrets-scan: the Go toolchain
-      # download redirects through release-assets.githubusercontent.com,
-      # not objects.githubusercontent.com.
-      # TEMP: audit instead of block, one CI run only — see secrets-scan.
+      # Built from a real, clean, fully-passing audit run of this exact
+      # job. api.deps.dev showed up unprompted — osv-scanner queries it
+      # alongside api.osv.dev, wasn't in the original guessed list.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
-          egress-policy: audit
+          egress-policy: block
           allowed-endpoints: >
             github.com:443
             api.github.com:443
-            objects.githubusercontent.com:443
             release-assets.githubusercontent.com:443
             proxy.golang.org:443
             sum.golang.org:443
             storage.googleapis.com:443
             api.osv.dev:443
+            api.deps.dev:443
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -196,26 +191,32 @@ jobs:
     permissions:
       contents: read
     steps:
-      # docker build FROM python:3.13-slim pulls blob content through Docker
-      # Hub's CDN redirect, which is non-deterministic across CDN backends
-      # (seen production.cloudflare.docker.com and production.cloudfront.docker.com
-      # in real runs, and Docker Hub can add others without notice) —
-      # *.docker.com:443 below covers the whole family instead of chasing
-      # each CDN one at a time. registry-1.docker.io/auth.docker.io (the
-      # manifest/auth API, not blob delivery) are stable and stay explicit.
-      # TEMP: audit instead of block, one CI run only — see secrets-scan.
+      # Built from a real, clean, fully-passing audit run of this exact
+      # job. docker build pulls the base image through Docker Hub's CDN
+      # redirect, non-deterministic across backends (this run hit
+      # production.cloudfront.docker.com; a prior run hit
+      # production.cloudflare.docker.com) — *.docker.com:443 covers the
+      # whole family instead of chasing each one. registry-1.docker.io/
+      # auth.docker.io (manifest/auth API, not blob delivery) are stable
+      # and stay explicit. pypi.org/files.pythonhosted.org and
+      # raw.githubusercontent.com were NOT in the original guessed list:
+      # the Dockerfile's own `pip install` runs during `docker build` on
+      # this runner, and Grype's vulnerability DB pull needs the GitHub
+      # raw content host.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
-          egress-policy: audit
+          egress-policy: block
           allowed-endpoints: >
             github.com:443
-            api.github.com:443
-            objects.githubusercontent.com:443
             registry-1.docker.io:443
             auth.docker.io:443
             *.docker.com:443
             grype.anchore.io:443
+            pypi.org:443
+            files.pythonhosted.org:443
+            raw.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -293,20 +294,23 @@ jobs:
       contents: read
       security-events: write
     steps:
-      # zizmor-action pulls a container image, which resolves through
-      # Docker Hub's CDN redirect (seen production.cloudflare.docker.com
-      # in real runs) — same non-deterministic CDN issue as image-scan's
-      # docker build, same *.docker.com wildcard fix.
-      # TEMP: audit instead of block, one CI run only — see secrets-scan.
+      # Built from a real, clean, fully-passing audit run of this exact
+      # job. Correction: an earlier report attributed a Docker Hub egress
+      # block to this job, assumed to mean zizmor-action pulls from
+      # Docker Hub — wrong. The real observed traffic shows it pulls its
+      # container from GHCR (ghcr.io + the GitHub package-content CDN),
+      # not Docker Hub at all; no *.docker.com traffic occurred here in
+      # this clean run. That earlier report most likely came from
+      # image-scan's log, not this job's.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
-          egress-policy: audit
+          egress-policy: block
           allowed-endpoints: >
             github.com:443
             api.github.com:443
-            objects.githubusercontent.com:443
-            *.docker.com:443
+            ghcr.io:443
+            pkg-containers.githubusercontent.com:443
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
