@@ -278,6 +278,13 @@ jobs:
           inputs: .github/workflows/
           config: .zizmor.yml
           advanced-security: true
+          # regular persona misses excessive-permissions entirely (it's
+          # pedantic-only) — pedantic catches it, min-severity: medium
+          # keeps pedantic's low-severity style suggestions (missing
+          # concurrency limits, undocumented permissions, etc.) from
+          # failing the build on their own.
+          persona: pedantic
+          min-severity: medium
 
   # ── 7. Security gate ─────────────────────────────────────────────────
   security-gate:
