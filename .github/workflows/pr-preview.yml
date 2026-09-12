@@ -1,0 +1,33 @@
+name: pr-preview
+
+# ATTACK DEMO — recreates the AsyncAPI supply chain compromise
+# (14 jul 2026): an attacker opened dozens of decoy pull requests to
+# camouflage one that exploited a pull_request_target workflow which
+# checked out and ran the PR's own untrusted code. That gave the
+# attacker a privileged token, used to publish four trojanized
+# @asyncapi npm packages. `pull_request_target` runs with the base
+# repo's secrets and permissions, but checking out and executing
+# `github.event.pull_request.head.sha` hands that same privilege to
+# whoever opened the PR. workflow-lint (zizmor's dangerous-triggers
+# rule) should block this before merge.
+on:
+  pull_request_target:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    name: Build PR preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head (untrusted)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      - name: Run PR code
+        working-directory: example
+        run: npm install
