@@ -22,10 +22,14 @@ jobs:
       # for that download: github.com (302) -> release-assets.
       # githubusercontent.com (200, actual tarball). That's a different
       # host from objects.githubusercontent.com — both are needed.
+      # TEMP: audit instead of block, one CI run only — to capture
+      # Harden-Runner's "All Outbound Destinations" table from a single
+      # real run instead of discovering domains one push at a time.
+      # Revert to block once allowed-endpoints is built from that data.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
-          egress-policy: block
+          egress-policy: audit
           allowed-endpoints: >
             github.com:443
             api.github.com:443
@@ -125,10 +129,11 @@ jobs:
       # Same actions/setup-go gap as secrets-scan: the Go toolchain
       # download redirects through release-assets.githubusercontent.com,
       # not objects.githubusercontent.com.
+      # TEMP: audit instead of block, one CI run only — see secrets-scan.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
-          egress-policy: block
+          egress-policy: audit
           allowed-endpoints: >
             github.com:443
             api.github.com:443
@@ -186,10 +191,11 @@ jobs:
       # *.docker.com:443 below covers the whole family instead of chasing
       # each CDN one at a time. registry-1.docker.io/auth.docker.io (the
       # manifest/auth API, not blob delivery) are stable and stay explicit.
+      # TEMP: audit instead of block, one CI run only — see secrets-scan.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
-          egress-policy: block
+          egress-policy: audit
           allowed-endpoints: >
             github.com:443
             api.github.com:443
@@ -279,10 +285,11 @@ jobs:
       # Docker Hub's CDN redirect (seen production.cloudflare.docker.com
       # in real runs) — same non-deterministic CDN issue as image-scan's
       # docker build, same *.docker.com wildcard fix.
+      # TEMP: audit instead of block, one CI run only — see secrets-scan.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
-          egress-policy: block
+          egress-policy: audit
           allowed-endpoints: >
             github.com:443
             api.github.com:443
