@@ -17,6 +17,11 @@ jobs:
       contents: read
       security-events: write
     steps:
+      # actions/setup-go downloads the Go toolchain from an
+      # actions/go-versions GitHub Release. Traced the real redirect chain
+      # for that download: github.com (302) -> release-assets.
+      # githubusercontent.com (200, actual tarball). That's a different
+      # host from objects.githubusercontent.com — both are needed.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
@@ -25,6 +30,7 @@ jobs:
             github.com:443
             api.github.com:443
             objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
             proxy.golang.org:443
             sum.golang.org:443
             storage.googleapis.com:443
@@ -116,6 +122,9 @@ jobs:
       contents: read
       security-events: write
     steps:
+      # Same actions/setup-go gap as secrets-scan: the Go toolchain
+      # download redirects through release-assets.githubusercontent.com,
+      # not objects.githubusercontent.com.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
@@ -124,6 +133,7 @@ jobs:
             github.com:443
             api.github.com:443
             objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
             proxy.golang.org:443
             sum.golang.org:443
             storage.googleapis.com:443
