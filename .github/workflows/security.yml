@@ -169,6 +169,13 @@ jobs:
     permissions:
       contents: read
     steps:
+      # docker build FROM python:3.13-slim pulls blob content through Docker
+      # Hub's CDN redirect, which is non-deterministic across CDN backends
+      # (seen production.cloudflare.docker.com and production.cloudfront.docker.com
+      # in real runs, and Docker Hub can add others without notice) —
+      # *.docker.com:443 below covers the whole family instead of chasing
+      # each CDN one at a time. registry-1.docker.io/auth.docker.io (the
+      # manifest/auth API, not blob delivery) are stable and stay explicit.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
@@ -179,7 +186,7 @@ jobs:
             objects.githubusercontent.com:443
             registry-1.docker.io:443
             auth.docker.io:443
-            production.cloudflare.docker.com:443
+            *.docker.com:443
             grype.anchore.io:443
 
       - name: Checkout
@@ -258,6 +265,10 @@ jobs:
       contents: read
       security-events: write
     steps:
+      # zizmor-action pulls a container image, which resolves through
+      # Docker Hub's CDN redirect (seen production.cloudflare.docker.com
+      # in real runs) — same non-deterministic CDN issue as image-scan's
+      # docker build, same *.docker.com wildcard fix.
       - name: Harden Runner
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
         with:
@@ -266,6 +277,7 @@ jobs:
             github.com:443
             api.github.com:443
             objects.githubusercontent.com:443
+            *.docker.com:443
 
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
